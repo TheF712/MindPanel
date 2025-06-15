@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>MindPanel</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Rubik+Mono+One&display=swap" rel="stylesheet">
+</head>
+<body class="dark">
+  <div class="header">
+    <h2>MindPanel</h2>
+    <div class="header-shortcuts">
+      <div>Ctrl/Cmd + Shift + B: Volver al selector</div>
+      <div>Ctrl/Cmd + Shift + E: Ocultar/Mostrar Asistente</div>
+      <div>Ctrl/Cmd + Shift + C: Modo captura personalizada</div>
+    </div>
+  </div>
+  <div id="ai-select" class="vertical">
+    <div class="ia-btn-wrap">
+      <button data-ai="chatgpt">ChatGPT</button>
+      <div class="ia-shortcut">Ctrl/Cmd + 1</div>
+    </div>
+    <div class="ia-btn-wrap">
+      <button data-ai="claude">Claude</button>
+      <div class="ia-shortcut">Ctrl/Cmd + 2</div>
+    </div>
+    <div class="ia-btn-wrap">
+      <button data-ai="gemini">Gemini</button>
+      <div class="ia-shortcut">Ctrl/Cmd + 3</div>
+    </div>
+    <div class="ia-btn-wrap">
+      <button data-ai="deepseek">DeepSeek</button>
+      <div class="ia-shortcut">Ctrl/Cmd + 4</div>
+    </div>
+    <div class="ia-btn-wrap">
+      <button data-ai="mathos">MathOS</button>
+      <div class="ia-shortcut">Ctrl/Cmd + 5</div>
+    </div>
+  </div>
+  <webview id="ai-frame" allowpopups partition="persist:assistant" style="display:none;"></webview>
+
+  <script>
+    const aiUrls = {
+      chatgpt: "https://chatgpt.com/",
+      claude: "https://claude.ai/new",
+      gemini: "https://gemini.google.com/app?hl=es",
+      deepseek: "https://chat.deepseek.com/",
+      mathos: "https://www.mathgptpro.com/es"
+    };
+    const aiFrame = document.getElementById('ai-frame');
+    const aiSelect = document.getElementById('ai-select');
+    let currentAI = null;
+
+    function openAI(ai) {
+      aiFrame.src = aiUrls[ai];
+      aiFrame.style.display = 'flex';
+      aiSelect.style.display = 'none';
+      aiFrame.addEventListener('dom-ready', () => {
+        aiFrame.setZoomFactor(0.75);
+      }, { once: true });
+      currentAI = ai;
+    }
+
+    function showSelector() {
+      aiFrame.style.display = 'none';
+      aiSelect.style.display = 'flex';
+      currentAI = null;
+    }
+
+    document.querySelectorAll('#ai-select button').forEach(btn => {
+      btn.onclick = () => openAI(btn.dataset.ai);
+    });
+
+    window.electronAPI.onSwitchAI((ai) => openAI(ai));
+    window.electronAPI.onShowSelector(() => showSelector());
+
+    window.electronAPI.onCheckAIActive(() => {
+      const isActive = currentAI !== null && aiFrame.style.display !== 'none';
+      window.electronAPI.sendAIActiveResponse(isActive);
+    });
+
+    function base64ToBlob(base64, mimeType) {
+      const byteCharacters = atob(base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      return new Blob([byteArray], { type: mimeType });
+    }
+
+    async function sendImageToAI(base64Image) {
+      if (!currentAI || !aiFrame) return;
+
+      try {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (currentAI === 'chatgpt') {
+          await sendToChatGPT(base64Image);
+        } else if (currentAI === 'claude') {
+          await sendToClaude(base64Image);
+        } else if (currentAI === 'gemini') {
+          await sendToGemini(base64Image);
+        } else if (currentAI === 'deepseek') {
+          await sendToDeepSeek(base64Image);
+        } else if (currentAI === 'mathos') {
+          await sendToMathos(base64Image);
+        }
+      } catch (error) {
+        await copyImageToClipboard(base64Image);
+        alert('Imagen copiada al portapapeles. Pega con Ctrl/Cmd + V en el chat.');
+      }
+    }
+
+    async function sendToChatGPT(base64Image) {
+      const code = `(async function() {
+        const base64 = '${base64Image}';
+        const byteCharacters = atob(base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'image/png' });
+
+        let fileInput = document.querySelector('input[type="file"]');
+        if (!fileInput) {
+          const attachBtn = document.querySelector('[data-testid="attach-button"], button[aria-label*="ttach"], .attachment-button, button[aria-label*="Attach"], .file-upload-button');
+          if (attachBtn) {
+            attachBtn.click();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            fileInput = document.querySelector('input[type="file"]');
+          }
+        }
+
+        if (fileInput) {
+          const file = new File([blob], 'screenshot.png', { type: 'image/png' });
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(file);
+          fileInput.files = dataTransfer.files;
+          const event = new Event('change', { bubbles: true });
+          fileInput.dispatchEvent(event);
+        }
+      })();`;
+      await aiFrame.executeJavaScript(code);
+    }
+
+    async function sendToClaude(base64Image) {
+      const code = `(async function() {
+        const base64 = '${base64Image}';
+        const byteCharacters = atob(base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'image/png' });
+
+        const attachBtn = document.querySelector('button[aria-label*="ttach"], .attach-button, [data-value="attach"]');
+        if (attachBtn) {
+          attachBtn.click();
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        const fileInput = document.querySelector('input[type="file"]');
+        if (fileInput) {
+          const file = new File([blob], 'screenshot.png', { type: 'image/png' });
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(file);
+          fileInput.files = dataTransfer.files;
+          const event = new Event('change', { bubbles: true });
+          fileInput.dispatchEvent(event);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          const sendBtn = document.querySelector('button[aria-label*="end"], .send-button, [data-testid="send-button"]');
+          if (sendBtn && !sendBtn.disabled) {
+            sendBtn.click();
+          }
+        }
+      })();`;
+      await aiFrame.executeJavaScript(code);
+    }
+
+    async function sendToGemini(base64Image) {
+      const code = `
+        (async function() {
+          const base64 = '${base64Image}';
+          const byteCharacters = atob(base64);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: 'image/png' });
+          const file = new File([blob], 'screenshot.png', { type: 'image/png' });
+
+          function waitForElement(selector, timeout = 5000, interval = 200) {
+            return new Promise((resolve) => {
+              const startTime = Date.now();
+              const checkElement = () => {
+                const element = document.querySelector(selector);
+                if (element) {
+                  resolve(element);
+                } else if (Date.now() - startTime < timeout) {
+                  setTimeout(checkElement, interval);
+                } else {
+                  resolve(null);
+                }
+              };
+              checkElement();
+            });
+          }
+
+          let attachBtn = null;
+          const attachButtonSelectors = [
+            'button[data-tooltip*="ttach"]',
+            'button[aria-label*="Adjuntar archivo"], button[aria-label*="Attach file"]',
+            'button[title*="Adjuntar"], button[title*="Attach"]',
+            'button[data-testid*="upload-button"]',
+            'button[data-testid*="attachment-button"]',
+            'button svg[data-icon="attachment"], button svg[data-icon="upload"]',
+            '.upload-button',
+            '.attach-button',
+            '[role="button"][aria-label*="Subir"], [role="button"][aria-label*="Upload"]',
+            '[role="button"][aria-label*="Añadir"], [role="button"][aria-label*="Add"]'
+          ];
+
+          for (const selector of attachButtonSelectors) {
+            attachBtn = await waitForElement(selector, 3000);
+            if (attachBtn) break;
+          }
+
+          if (!attachBtn) {
+            const allButtons = document.querySelectorAll('button, [role="button"]');
+            for (const btn of allButtons) {
+              const text = (btn.textContent || '').toLowerCase();
+              const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
+              const title = (btn.getAttribute('title') || '').toLowerCase();
+
+              if (
+                text.includes('adjuntar') || text.includes('attach') ||
+                text.includes('subir') || text.includes('upload') ||
+                text.includes('añadir') || text.includes('add') ||
+                ariaLabel.includes('adjuntar') || ariaLabel.includes('attach') ||
+                ariaLabel.includes('subir') || ariaLabel.includes('upload') ||
+                ariaLabel.includes('añadir') || ariaLabel.includes('add') ||
+                title.includes('adjuntar') || title.includes('attach') ||
+                title.includes('subir') || title.includes('upload') ||
+                title.includes('añadir') || title.includes('add')
+              ) {
+                attachBtn = btn;
+                break;
+              }
+            }
+          }
+
+          if (attachBtn) {
+            attachBtn.click();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+
+          let fileInput = null;
+          const fileInputSelectors = [
+            'input[type="file"][accept*="image"]',
+            'input[type="file"][accept*="/*"]',
+            'input[type="file"]'
+          ];
+
+          for (const selector of fileInputSelectors) {
+            fileInput = await waitForElement(selector, 3000);
+            if (fileInput) break;
+          }
+
+          if (fileInput) {
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            fileInput.files = dataTransfer.files;
+
+            const eventOptions = { bubbles: true, composed: true };
+            fileInput.dispatchEvent(new Event('change', eventOptions));
+            fileInput.dispatchEvent(new Event('input', eventOptions));
+            fileInput.dispatchEvent(new Event('upload', eventOptions));
+
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          } else {
+            const dropZoneSelectors = [
+              '[data-testid*="input-area"]',
+              '.chat-input-area',
+              '.message-input-area',
+              '.text-input-area',
+              '[contenteditable="true"]',
+              'body'
+            ];
+
+            let dropZone = null;
+            for (const selector of dropZoneSelectors) {
+              dropZone = await waitForElement(selector, 2000);
+              if (dropZone) break;
+            }
+
+            if (dropZone) {
+              const dataTransfer = new DataTransfer();
+              dataTransfer.items.add(file);
+
+              const dragEnterEvent = new DragEvent('dragenter', { bubbles: true, dataTransfer: dataTransfer });
+              const dragOverEvent = new DragEvent('dragover', { bubbles: true, dataTransfer: dataTransfer });
+              const dropEvent = new DragEvent('drop', { bubbles: true, dataTransfer: dataTransfer });
+
+              dropZone.dispatchEvent(dragEnterEvent);
+              await new Promise(resolve => setTimeout(resolve, 100));
+              dropZone.dispatchEvent(dragOverEvent);
+              await new Promise(resolve => setTimeout(resolve, 100));
+              dropZone.dispatchEvent(dropEvent);
+
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+          }
+        })();
+      `;
+      await aiFrame.executeJavaScript(code);
+    }
+
+    async function sendToDeepSeek(base64Image) {
+      const code = `(async function() {
+        const base64 = '${base64Image}';
+        const byteCharacters = atob(base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'image/png' });
+
+        const attachBtn = document.querySelector('button[title*="ttach"], .attachment-btn, [aria-label*="ttach"]');
+        if (attachBtn) {
+          attachBtn.click();
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        const fileInput = document.querySelector('input[type="file"]');
+        if (fileInput) {
+          const file = new File([blob], 'screenshot.png', { type: 'image/png' });
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(file);
+          fileInput.files = dataTransfer.files;
+          const event = new Event('change', { bubbles: true });
+          fileInput.dispatchEvent(event);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          const sendBtn = document.querySelector('button[aria-label*="end"], .send-btn');
+          if (sendBtn && !sendBtn.disabled) {
+            sendBtn.click();
+          }
+        }
+      })();`;
+      await aiFrame.executeJavaScript(code);
+    }
+
+    async function sendToMathos(base64Image) {
+      const code = `(async function() {
+        const base64 = '${base64Image}';
+        const byteCharacters = atob(base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'image/png' });
+
+        const attachBtn = document.querySelector('button[aria-label*="ttach"], .upload-button, .file-button, [title*="ttach"], button[aria-label*="Upload"], .attachment-btn');
+        if (attachBtn) {
+          attachBtn.click();
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        const fileInput = document.querySelector('input[type="file"]');
+        if (fileInput) {
+          const file = new File([blob], 'screenshot.png', { type: 'image/png' });
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(file);
+          fileInput.files = dataTransfer.files;
+          const event = new Event('change', { bubbles: true });
+          fileInput.dispatchEvent(event);
+        }
+      })();`;
+      await aiFrame.executeJavaScript(code);
+    }
+
+    async function copyImageToClipboard(base64Image) {
+      try {
+        const blob = base64ToBlob(base64Image, 'image/png');
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': blob })
+        ]);
+      } catch (error) {
+        console.error('Error copiando al portapapeles:', error);
+      }
+    }
+
+    window.electronAPI.onScreenshotTaken(async (tmpPath) => {
+      const imgBase64 = await window.electronAPI.getScreenshotBase64(tmpPath);
+      if (imgBase64) {
+        await sendImageToAI(imgBase64);
+      }
+    });
+
+    window.electronAPI.onScreenshotError((err) => {
+      alert("Error al tomar la captura de pantalla: " + err);
+    });
+  </script>
+</body>
+</html>

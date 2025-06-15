@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>MindPanel Launcher</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Rubik+Mono+One&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark">
+  <div class="header">
+    <h2>MindPanel Launcher</h2>
+    <div class="controls">
+      <button id="minimize-btn">_</button>
+      <button id="close-btn">X</button>
+    </div>
+  </div>
+  <div class="centered-content">
+    <p>Pulsa el botón o usa Ctrl/Cmd + Shift + E</p>
+    <button id="launch-btn" class="green-rounded">Lanzar MindPanel</button>
+  </div>
+  <script>
+    document.getElementById('launch-btn').onclick = () => window.electronAPI.launchAssistant();
+    document.getElementById('minimize-btn').onclick = () => window.close();
+    document.getElementById('close-btn').onclick = () => window.close();
+  </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+{
+  "name": "mind-panel",
+  "version": "1.0.0",
+  "main": "main.js",
+  "description": "Aplicación en Electron con múltiples IAs para elegir.",
+  "author": "TheF712",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "dist": "electron-builder",
+    "clean": "rm -rf dist",
+    "rebuild": "npm run clean && npm run build"
+  },
+  "build": {
+    "appId": "com.df.mindpanel",
+    "productName": "MindPanel",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "*.html",
+      "*.css",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": ".",
+        "to": "app",
+        "filter": [
+          "*.html",
+          "*.css",
+          "*.js",
+          "!main.js",
+          "!preload.js"
+        ]
+      }
+    ],
+    "mac": {
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.productivity"
+    },
+    "win": {
+      "icon": "assets/icon.ico"
+    }
+  },
+  "dependencies": {
+    "screenshot-desktop": "^1.15.1",
+    "sharp": "^0.34.2"
+  },
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-builder": "^24.13.1"
+  }
+}

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Screenshot Overlay</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Rubik+Mono+One&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      transition: all 0.1s ease-in-out;
+    }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      background: rgba(10, 10, 30, 0.5);
+      overflow: hidden;
+      font-family: 'Poppins', sans-serif;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .capture-area {
+      position: absolute;
+      border: 2px solid #7f5af0;
+      background: rgba(127, 90, 240, 0.08);
+      box-shadow: 0 0 0 9999px rgba(5, 0, 20, 0.6);
+      transition: all 0.05s ease-out;
+    }
+
+    .capture-info {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, rgba(20, 20, 60, 0.9), rgba(50, 10, 80, 0.9));
+      color: #c0b7ff;
+      padding: 15px 25px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.6;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(127, 90, 240, 0.3);
+    }
+
+    .capture-info h3 {
+      margin-bottom: 10px;
+      font-size: 16px;
+      text-align: center;
+      color: #fff;
+    }
+
+    .shortcuts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 20px;
+      font-size: 12px;
+    }
+
+    .shortcut {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .keys {
+      font-weight: bold;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+
+    .area-info {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, rgba(20, 20, 60, 0.9), rgba(50, 10, 80, 0.9));
+      color: #c0b7ff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(127, 90, 240, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div id="capture-area" class="capture-area"></div>
+
+  <div class="capture-info">
+    <h3>Modo Captura de Pantalla</h3>
+    <div class="shortcuts">
+      <div class="shortcut">
+        <span>Mover:</span>
+        <span class="keys">↑↓←→</span>
+      </div>
+      <div class="shortcut">
+        <span>Mover rápido:</span>
+        <span class="keys">Ctrl+↑↓←→</span>
+      </div>
+      <div class="shortcut">
+        <span>Altura:</span>
+        <span class="keys">Shift+↑↓</span>
+      </div>
+      <div class="shortcut">
+        <span>Ancho:</span>
+        <span class="keys">Alt+←→</span>
+      </div>
+      <div class="shortcut">
+        <span>Capturar:</span>
+        <span class="keys">Ctrl+Shift+J</span>
+      </div>
+      <div class="shortcut">
+        <span>Cancelar:</span>
+        <span class="keys">Ctrl+Shift+G</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="area-info" class="area-info">
+    Área: <span id="area-dimensions">400 × 300</span> | Posición: <span id="area-position">100, 100</span>
+  </div>
+
+  <script>
+    const captureArea = document.getElementById('capture-area');
+    const areaDimensions = document.getElementById('area-dimensions');
+    const areaPosition = document.getElementById('area-position');
+
+    let currentArea = { x: 100, y: 100, width: 400, height: 300 };
+
+    function updateCaptureArea(area) {
+      console.log('Actualizando área visual:', area);
+
+      currentArea = { ...area };
+
+      captureArea.style.left = area.x + 'px';
+      captureArea.style.top = area.y + 'px';
+      captureArea.style.width = area.width + 'px';
+      captureArea.style.height = area.height + 'px';
+
+      areaDimensions.textContent = `${area.width} × ${area.height}`;
+      areaPosition.textContent = `${area.x}, ${area.y}`;
+    }
+
+    if (window.electronAPI && window.electronAPI.onUpdateCaptureArea) {
+      window.electronAPI.onUpdateCaptureArea(updateCaptureArea);
+      console.log('Listener de captura registrado');
+    } else {
+      console.error('electronAPI.onUpdateCaptureArea no está disponible');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('DOM cargado, estableciendo área inicial');
+      updateCaptureArea(currentArea);
+    });
+  </script>
+</body>
+</html>
