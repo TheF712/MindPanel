@@ -53,13 +53,17 @@ function createMainWindow() {
     height: 300,
     frame: false,
     show: false,
+    skipTaskbar: true, // Ocultar de la taskbar
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true
     },
     resizable: false,
-    movable: true
+    movable: true,
+    // Configuraciones adicionales para Windows 11
+    titleBarStyle: 'hidden',
+    titleBarOverlay: false
   });
   
   try {
@@ -70,6 +74,19 @@ function createMainWindow() {
     console.error('Error cargando index.html:', error);
     mainWindow.loadURL('data:text/html,<h1>Error: No se pudo cargar index.html</h1>');
   }
+
+  // Ocultar de la taskbar cuando se minimiza o pierde el foco
+  mainWindow.on('minimize', () => {
+    mainWindow.setSkipTaskbar(true);
+  });
+
+  mainWindow.on('blur', () => {
+    mainWindow.setSkipTaskbar(true);
+  });
+
+  mainWindow.on('focus', () => {
+    mainWindow.setSkipTaskbar(true);
+  });
 
   mainWindow.on('closed', () => {
     if (assistantWindow) {
@@ -97,6 +114,7 @@ function createAssistantWindow() {
     frame: false,
     alwaysOnTop: true,
     show: false,
+    skipTaskbar: true, // Ocultar de la taskbar
     x: screenWidth - 460,
     y: 20,
     webPreferences: {
@@ -106,7 +124,10 @@ function createAssistantWindow() {
       contextIsolation: true,
       webSecurity: false
     },
-    movable: true
+    movable: true,
+    // Configuraciones adicionales para Windows 11
+    titleBarStyle: 'hidden',
+    titleBarOverlay: false
   });
   
   try {
@@ -118,6 +139,23 @@ function createAssistantWindow() {
     assistantWindow.loadURL('data:text/html,<h1>Error: No se pudo cargar assistant.html</h1>');
   }
   
+  // Mantener oculto de la taskbar en todos los eventos
+  assistantWindow.on('minimize', () => {
+    assistantWindow.setSkipTaskbar(true);
+  });
+
+  assistantWindow.on('blur', () => {
+    assistantWindow.setSkipTaskbar(true);
+  });
+
+  assistantWindow.on('focus', () => {
+    assistantWindow.setSkipTaskbar(true);
+  });
+
+  assistantWindow.on('show', () => {
+    assistantWindow.setSkipTaskbar(true);
+  });
+
   assistantWindow.on('closed', () => assistantWindow = null);
 
   assistantWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -135,6 +173,8 @@ function showOrCreateAssistant() {
     createAssistantWindow();
   } else {
     assistantWindow.show();
+    // Asegurar que sigue oculto de la taskbar al mostrar
+    assistantWindow.setSkipTaskbar(true);
   }
 }
 
@@ -159,7 +199,7 @@ function createScreenshotOverlay() {
     frame: false,
     transparent: true,
     alwaysOnTop: true,
-    skipTaskbar: true,
+    skipTaskbar: true, // Ocultar de la taskbar
     resizable: false,
     movable: false,
     focusable: false,
@@ -360,8 +400,15 @@ function hideAssistant() {
 }
 
 app.whenReady().then(() => {
+  // Ocultar dock en macOS y configurar para Windows
   if (process.platform === 'darwin') {
     app.dock.hide();
+  }
+  
+  // Configuración específica para Windows 11
+  if (process.platform === 'win32') {
+    // Evitar que la aplicación aparezca en la taskbar
+    app.setAppUserModelId('com.mindpanel.launcher');
   }
   
   console.log('App is packaged:', app.isPackaged);
@@ -372,6 +419,8 @@ app.whenReady().then(() => {
   
   createMainWindow();
   mainWindow.show();
+  // Asegurar que la ventana principal esté oculta de la taskbar
+  mainWindow.setSkipTaskbar(true);
 
   ipcMain.on('launch-assistant', showOrCreateAssistant);
   ipcMain.on('ai-active-response', (event, isActive) => {
@@ -427,10 +476,23 @@ app.whenReady().then(() => {
   });
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createMainWindow();
+    }
   });
 });
 
 app.on('window-all-closed', () => {
   app.quit();
 });
+
+// Evitar que la aplicación aparezca en el Alt+Tab de Windows
+app.on('browser-window-created', (event, window) => {
+  window.setSkipTaskbar(true);
+});
+
+// Configuración adicional para Windows 11
+if (process.platform === 'win32') {
+  app.commandLine.appendSwitch('disable-background-timer-throttling');
+  app.commandLine.appendSwitch('disable-renderer-backgrounding');
+}
