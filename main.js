@@ -53,7 +53,7 @@ function createMainWindow() {
     height: 300,
     frame: false,
     show: false,
-    skipTaskbar: true, // Ocultar de la taskbar
+    skipTaskbar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -61,7 +61,6 @@ function createMainWindow() {
     },
     resizable: false,
     movable: true,
-    // Configuraciones adicionales para Windows 11
     titleBarStyle: 'hidden',
     titleBarOverlay: false
   });
@@ -75,7 +74,6 @@ function createMainWindow() {
     mainWindow.loadURL('data:text/html,<h1>Error: No se pudo cargar index.html</h1>');
   }
 
-  // Ocultar de la taskbar cuando se minimiza o pierde el foco
   mainWindow.on('minimize', () => {
     mainWindow.setSkipTaskbar(true);
   });
@@ -114,7 +112,7 @@ function createAssistantWindow() {
     frame: false,
     alwaysOnTop: true,
     show: false,
-    skipTaskbar: true, // Ocultar de la taskbar
+    skipTaskbar: true,
     x: screenWidth - 460,
     y: 20,
     webPreferences: {
@@ -125,7 +123,6 @@ function createAssistantWindow() {
       webSecurity: false
     },
     movable: true,
-    // Configuraciones adicionales para Windows 11
     titleBarStyle: 'hidden',
     titleBarOverlay: false
   });
@@ -139,7 +136,6 @@ function createAssistantWindow() {
     assistantWindow.loadURL('data:text/html,<h1>Error: No se pudo cargar assistant.html</h1>');
   }
   
-  // Mantener oculto de la taskbar en todos los eventos
   assistantWindow.on('minimize', () => {
     assistantWindow.setSkipTaskbar(true);
   });
@@ -173,7 +169,6 @@ function showOrCreateAssistant() {
     createAssistantWindow();
   } else {
     assistantWindow.show();
-    // Asegurar que sigue oculto de la taskbar al mostrar
     assistantWindow.setSkipTaskbar(true);
   }
 }
@@ -400,14 +395,11 @@ function hideAssistant() {
 }
 
 app.whenReady().then(() => {
-  // Ocultar dock en macOS y configurar para Windows
   if (process.platform === 'darwin') {
     app.dock.hide();
   }
   
-  // Configuración específica para Windows 11
   if (process.platform === 'win32') {
-    // Evitar que la aplicación aparezca en la taskbar
     app.setAppUserModelId('com.mindpanel.launcher');
   }
   
@@ -419,7 +411,6 @@ app.whenReady().then(() => {
   
   createMainWindow();
   mainWindow.show();
-  // Asegurar que la ventana principal esté oculta de la taskbar
   mainWindow.setSkipTaskbar(true);
 
   ipcMain.on('launch-assistant', showOrCreateAssistant);
@@ -486,12 +477,10 @@ app.on('window-all-closed', () => {
   app.quit();
 });
 
-// Evitar que la aplicación aparezca en el Alt+Tab de Windows
 app.on('browser-window-created', (event, window) => {
   window.setSkipTaskbar(true);
 });
 
-// Configuración adicional para Windows 11
 if (process.platform === 'win32') {
   app.commandLine.appendSwitch('disable-background-timer-throttling');
   app.commandLine.appendSwitch('disable-renderer-backgrounding');
